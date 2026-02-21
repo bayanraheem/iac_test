@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAC Relief System | مؤسسة الإغاثة الدولية</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --iac-primary: #1b8f4c;
+  --iac-dark: #0a4d29;
+  --bg-color: #f0f4f3;
+  --glass: rgba(255, 255, 255, 0.95);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --font-base: clamp(13px, 1.2vw, 16px);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  margin: 0; padding: 0;
+  background: var(--bg-color);
+  color: #2c3e50;
+  height: 100vh; width: 100vw;
+  overflow: hidden;
+  font-size: var(--font-base);
+}
+
+/* --- تسجيل الدخول --- */
+#login-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--iac-dark), var(--iac-primary));
+  position: relative;
+  z-index: 1000;
+}
+
+.login-card {
+  background: white;
+  padding: 30px;
+  border-radius: 25px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+.login-card img { width: 80px; height: 80px; border-radius: 15px; margin-bottom: 10px; }
+
+/* --- رسالة الترحيب --- */
+#welcome-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: #ffffff; 
+  z-index: 2000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- Sidebar Styles --- */
+.sidebar {
+  position: fixed;
+  right: -280px;
+  top: 0;
+  width: 280px;
+  height: 100%;
+  background: var(--iac-dark);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1500;
+  padding-top: 20px;
+  box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+}
+.sidebar.active { right: 0; }
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.sidebar-item {
+  padding: 18px 25px;
+  color: white;
+  text-decoration: none;
+  display: block;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: 0.2s;
+  text-align: right;
+}
+.sidebar-item:hover { background: var(--iac-primary); padding-right: 35px; }
+/* توحيد الحاوية الرئيسية */
+#checkout-result-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* توسيط البطاقات */
+  gap: 15px;
+  width: 100%;
+  padding: 10px 0;
+}
+
+/* توحيد حجم البطاقة العلوية وبطاقات المواد */
+.id-card-modern, .checkout-item-card {
+  width: 90%; /* عرض موحد لجميع البطاقات */
+  max-width: 500px;
+  margin: 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: none !important; /* إزالة أي ميلان */
+  transition: none !important;
+  background: white;
+  border: 1px solid #eee;
+  box-sizing: border-box;
+}
+
+/* تنسيق بطاقة النتيجة العلوية */
+.checkout-main-card {
+  padding: 20px;
+  text-align: center;
+}
+
+/* تنسيق بطاقة المادة المفقودة */
+.checkout-item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-right: 6px solid #d32f2f; /* تمييز النقص باللون الأحمر */
+}
+/* --- Header Bar --- */
+.header-bar {
+  background: white; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  padding: 10px 15px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  position: sticky; 
+  top: 0; 
+  z-index: 100; 
+  border-bottom: 4px solid var(--iac-primary);
+}
+
+.header-logo-container { 
+  display: flex; 
+  align-items: center; 
+  gap: 15px; 
+  flex-grow: 1; 
+}
+.header-bar .logo { width: 50px; height: 50px; border-radius: 10px; overflow: hidden; }
+.header-bar .logo img { width: 100%; height: 100%; object-fit: cover; }
+
+.header-titles { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-start; 
+  justify-content: center;
+}
+.header-title-ar { 
+  color: var(--iac-primary); 
+  font-size: clamp(16px, 4.5vw, 20px); /* تكبير العنوان العربي */
+  font-weight: 800; 
+  line-height: 1;
+}
+.header-title-en { 
+  color: var(--iac-dark); 
+  font-size: 10px; 
+  font-weight: 700; 
+  opacity: 0.8;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.menu-toggle {
+  background: var(--iac-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Content Sections --- */
+.section-content { display: none; padding:20px; width: 100%; padding-bottom: 40px; }
+.section-content.active { display: block; }
+
+
+/* تحسين استجابة الهواتف */
+@media (max-width: 480px) {
+  .section-content {
+    padding: 5px 8px;
+  }
+}
+
+/* --- Main App Layout --- */
+#main-app { display: none; flex-direction: column; height: 100vh; overflow-y: auto; }
+
+.main-layout { display: flex; flex-direction: column; gap: 20px; padding: 4px; align-items: center; width: 100%; }
+.panel { background: var(--glass); border-radius: 20px; display: flex; flex-direction: column; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.3); width: 98%; max-width: 1000px; overflow: hidden; }
+.panel-header { padding: 12px; background: rgba(27, 143, 76, 0.1); font-weight: 800; color: var(--iac-dark); text-align: center; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.panel-body { padding: 15px; flex: 1; }
+
+/* --- Item Rows & Status Cards --- */
+.item-info-wrapper { display: flex; flex-direction: column; align-items: flex-start; text-align: right; }
+.item-name-ar { display: block; font-weight: 700; font-size: 15px; color: var(--iac-dark); line-height: 1.2; }
+.item-name-en { display: block; font-size: 11px; color: #95a5a6; font-weight: 500; line-height: 1.2; margin-top: 2px; }
+
+.id-card-modern { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #eee; }
+.id-card-header { background: var(--iac-primary); color: white; padding: 12px; text-align: center; font-size: 14px; }
+.id-card-body { padding: 20px; text-align: center; }
+.beneficiary-name { font-size: 19px; font-weight: 800; color: var(--iac-dark); }
+.id-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+.detail-item { background: #f8fcf9; padding: 8px; border-radius: 10px; text-align: center; }
+.detail-label { font-size: 10px; color: #7f8c8d; display: block; }
+.detail-value { font-weight: 800; color: #2c3e50; font-size: 14px; }
+
+.item-row { display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; border-right: 5px solid var(--iac-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+.item-qty-box { background: #eef7f2; color: var(--iac-primary); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; margin: 0 10px; }
+.deliver-btn { background: var(--iac-primary); color: white; border: none; padding: 8px 15px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 12px; }
+
+.btn-action { width: 100%; padding: 10px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; display: flex; flex-direction: column; align-items: center; }
+.btn-search { background: var(--iac-primary); color: white; }
+.btn-scan { background: #34495e; color: white; }
+input { width: 100%; padding: 12px; border: 2px solid #d1dbd6; border-radius: 12px; font-family: 'Tajawal'; font-size: 15px; margin-top: 5px; }
+
+/* --- General Query Result Cards --- */
+.status-card {
+  background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-right: 5px solid #ccc;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.status-card.delivered { border-right-color: #2ecc71; }
+.status-card.pending { border-right-color: #f1c40f; }
+.tag {
+  display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; margin: 3px;
+  background: #f0f4f3; color: var(--iac-dark); font-weight: 600; border: 1px solid #dee2e6;
+}
+
+/* --- Common UI --- */
+.id-card-modern { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #eee; margin-bottom: 15px; width: 100%; }
+.id-card-header { background: var(--iac-primary); color: white; padding: 10px; text-align: center; font-size: 13px; font-weight: 700; }
+.id-card-body { padding: 15px; text-align: center; }
+.beneficiary-name { font-size: 18px; font-weight: 800; color: var(--iac-dark); }
+.id-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.detail-item { background: #f8fcf9; padding: 6px; border-radius: 10px; text-align: center; border: 1px solid #edf5f0; }
+.detail-label { font-size: 9px; color: #7f8c8d; display: block; margin-bottom: 2px; }
+.detail-value { font-weight: 800; color: #2c3e50; font-size: 13px; }
+
+.btn-action { width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.btn-search { background: var(--iac-primary); color: white; }
+.btn-scan { background: #34495e; color: white; }
+label { font-weight: 700; color: var(--iac-dark); font-size: 13px; margin-bottom: 5px; display: block; text-align: right; }
+input { width: 100%; padding: 12px; border: 2px solid #d1dbd6; border-radius: 12px; font-family: 'Tajawal'; font-size: 15px; margin-bottom: 10px; text-align: center; }
+
+/* Stats Widgets */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 95%; max-width: 600px; margin-bottom: 10px; }
+.stat-card { background: white; padding: 10px; border-radius: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-bottom: 4px solid #ddd; }
+.stat-val { display: block; font-size: 20px; font-weight: 800; color: var(--iac-dark); }
+.stat-lbl { display: block; font-size: 9px; color: #7f8c8d; font-weight: 700; }
+
+</style>
+</head>
+<body>
+
+<div id="welcome-overlay">
+  <div class="welcome-content">
+    <img src="https://i.postimg.cc/BvLv7FDL/images.jpg" class="welcome-logo" style="width: 100px; border-radius: 20px;">
+    <div id="welcome-msg" class="welcome-name" style="font-size: 22px; margin-top: 15px;"></div>
+    <div id="quote-ar" style="font-size: 18px; font-weight: 700; color: var(--iac-dark); margin-top: 10px;"></div>
+    <div id="quote-en" style="font-size: 14px; color: #7f8c8d; margin-bottom: 30px; font-style: italic;"></div>
+    <button class="btn-action btn-search" onclick="startApp()" style="max-width: 250px;">
+      لنبدأ العمل | Let's Start
+    </button>
+  </div>
+</div>
+
+<div id="login-screen">
+  <div class="login-card">
+    <img src="https://i.postimg.cc/BvLv7FDL/images.jpg" alt="Logo">
+    <h2 style="margin:10px 0; color:var(--iac-dark)">نظام التوزيع الذكي</h2>
+    <p style="font-size:12px; color:#666; margin-bottom:20px">Smart Distribution System</p>
+    
+    <input type="password" id="passInput" placeholder="Password | كلمة المرور">
+    
+    <button class="btn-action btn-search" onclick="login()">
+        دخول بالنظام (باسوورد)
+        <span style="font-size: 10px; opacity: 0.8;">Login with Password</span>
+    </button>
+
+    <div style="margin: 15px 0; color: #ccc;">أو | OR</div>
+
+    <button class="btn-action btn-scan" onclick="toggleLoginScanner()">
+        مسح باركود المتطوع
+        <span style="font-size: 10px; opacity: 0.8;">Scan Volunteer QR</span>
+    </button>
+    
+    <div id="login-qr-reader" style="width: 100%; max-width: 300px; margin: 15px auto; display: none; border-radius: 15px; overflow: hidden;"></div>
+    <p id="login-err" style="color:red; font-size:12px; margin-top:10px"></p>
+  </div>
+</div>
+
+<div id="main-app">
+  
+  <div id="mySidebar" class="sidebar">
+    <div class="sidebar-header">
+       <button class="deliver-btn" onclick="toggleSidebar()" style="width:100%">إغلاق القائمة | Close ×</button>
+    </div>
+    <div class="sidebar-item" onclick="switchSection('distribution-sec')">📍 توزيع اليوم | Daily Distribution</div>
+    <div class="sidebar-item" onclick="switchSection('query-sec')">🔍 استعلام شامل | General Inquiry</div>
+    <div class="sidebar-item" onclick="switchSection('report-sec')">📊 تقرير اليوم | Daily Report</div>
+    <div class="sidebar-item" onclick="switchSection('global-stats-sec'); loadGlobalStats();">📈 إحصاء عام | Global Analytics</div>
+    <div class="sidebar-item" onclick="switchSection('checkout-sec')">✅ تحقق الخروج | Final Checkout</div>
+  </div>
+
+  <div class="header-bar">
+    <div class="header-logo-container">
+      <div class="logo"><img src="https://i.postimg.cc/BvLv7FDL/images.jpg" alt="Logo"></div>
+      <div class="header-titles">
+        <div class="header-title-ar">مؤسسة الإغاثة الدولية IAC</div>
+        <div class="header-title-en">IAC INTERNATIONAL AID CHARITY</div>
+      </div>
+    </div>
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+  </div>
+
+  <div class="main-layout">
+    
+    <div id="distribution-sec" class="section-content active">
+        <div class="panel">
+          <div class="panel-header">البحث والتحقق | Search & Verify</div>
+          <div class="panel-body">
+            <label>رقم اليوم | Day Number</label>
+            <input type="number" id="dayInput" placeholder="Ex: 1">
+            <label>رقم المستفيد | Beneficiary ID</label>
+            <input type="text" id="idInput" placeholder="DAM00000">
+            <button class="btn-action btn-search" onclick="search()">
+              🔍 عرض المستحقات | View Items
+            </button>
+            <button class="btn-action btn-scan" onclick="toggleScanner()">
+              📷 مسح الكود | Scan QR Code
+            </button>
+            <div id="reader" style="margin-top:10px; display:none; border-radius: 15px; overflow: hidden;"></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top: 15px;">
+          <div class="panel-header">ملف المستفيد | Profile Info</div>
+          <div id="beneficiary-result" class="panel-body">
+             <div style="text-align:center; color:#999; padding:20px">بانتظار البيانات... | Waiting for data...</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top: 15px;">
+          <div class="panel-header">قائمة المخصصات | Items Entitlement</div>
+          <div id="items-result" class="panel-body">
+             <div style="text-align:center; color:#999; padding:20px">سيتم عرض الأصناف هنا | Items will appear here</div>
+          </div>
+        </div>
+    </div>
+
+    <div id="query-sec" class="section-content">
+      <div class="panel">
+        <div class="panel-header">استعلام شامل | General Inquiry</div>
+        <div class="panel-body">
+          <label>رقم المستفيد | Beneficiary ID</label>
+          <input type="text" id="idQueryInput" placeholder="DAM00000">
+          <button class="btn-action btn-search" onclick="generalQuery()">🔍 استعلام شامل | Inquiry</button>
+          <button class="btn-action btn-scan" onclick="toggleQueryScanner()">📷 مسح الكود | Scan QR</button>
+          <div id="query-reader" style="margin-top:10px; display:none; border-radius: 15px; overflow: hidden;"></div>
+        </div>
+      </div>
+      <div id="query-results-container" style="width: 100%; max-width: 600px; padding: 15px 0;"></div>
+    </div>
+
+    <div id="report-sec" class="section-content">
+      <div class="panel">
+        <div class="panel-header">تقرير المستفيدين اليومي | Daily Report</div>
+        <div class="panel-body">
+          <label>أدخل رقم اليوم | Enter Day Number</label>
+          <input type="number" id="reportDayInput" placeholder="1">
+          <button class="btn-action btn-search" onclick="loadDailyReport()">📊 عرض التقرير | View Report</button>
+        </div>
+      </div>
+      <div id="report-stats" class="stats-grid" style="display:none; margin-top: 15px;">
+        <div class="stat-card" style="border-bottom-color: var(--iac-primary);">
+          <span id="stat-total" class="stat-val">0</span>
+          <span class="stat-lbl">الكلي | Total</span>
+        </div>
+        <div class="stat-card" style="border-bottom-color: #2ecc71;">
+          <span id="stat-rec" class="stat-val">0</span>
+          <span class="stat-lbl">استلم | Received</span>
+        </div>
+        <div class="stat-card" style="border-bottom-color: #e74c3c;">
+          <span id="stat-not" class="stat-val">0</span>
+          <span class="stat-lbl">متبقي | Pending</span>
+        </div>
+      </div>
+      <div id="report-list" style="width: 100%; max-width: 600px; margin-top: 15px;"></div>
+    </div>
+
+    <div id="global-stats-sec" class="section-content">
+      <div class="panel">
+        <div class="panel-header">الإحصاء التراكمي الشامل | Global Analytics</div>
+        <div class="panel-body">
+           <div style="text-align:center; font-size:12px; color:#7f8c8d; margin-bottom:15px;">ملخص كامل لجميع أيام التوزيع | Full Summary of All Distribution Days</div>
+           <div id="global-main-stats" class="stats-grid">
+              </div>
+        </div>
+      </div>
+      
+      <div id="global-days-list" style="width: 100%; max-width: 600px; margin-top: 20px;">
+         </div>
+    </div>
+
+  </div>
+  <div id="checkout-sec" class="section-content">
+  <div class="panel">
+    <div class="panel-header">تحقق الخروج النهائي | Final Exit Check</div>
+    <div class="panel-body">
+      <label>مسح أو إدخال ID | Scan or Enter ID</label>
+      <input type="text" id="checkoutIdInput" placeholder="DAM00000">
+      <button class="btn-action btn-search" onclick="runFinalCheckout()">✅ تحقق من الاستلام | Verify All</button>
+      <button class="btn-action btn-scan" onclick="toggleCheckoutScanner()">📷 مسح الباركود | Scan QR</button>
+      <div id="checkout-reader" style="margin-top:10px; display:none; border-radius: 15px; overflow: hidden;"></div>
+    </div>
+  </div>
+  <div id="checkout-result-container" style="width: 100%; max-width: 600px; margin-top: 15px;"></div>
+  </div>
+
+</div>
+
+<script>
+// رابط الويب آب (يجب استبداله برابطك الفعلي)
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxc-bPRnSDnh4aTgX6y-8oErJMwvRf29oq9-cSiBrwKX5sQkSIqMnhNfqDzgT3pXKgSQg/exec";
+
+const SYSTEM_PASS = "iac2026";
+let html5QrCode, loginQrCode, queryQrCode, checkoutQrCode;
+let scannerActive = false;
+
+const translationMap = {
+  'vegetables (eggplant)':'خضار (باذنجان)', 'vegetables(tomato)':'خضار (بندورة)','vegetables( potato)':'خضار (بطاطا)',
+  'rice': 'أرز', 'sugar': 'سكر', 'bulgur': 'برغل', 'capillary': 'شعيرية',
+  'red lentil': 'عدس أحمر', 'tea': 'شاي', 'sunflower oil': 'زيت دوار الشمس',
+  'flour': 'طحين', 'green lentils': 'عدس أخضر', 'tomato pasta': 'دبس بندورة',
+  'children sweets': 'سكاكر أطفال', 'salt': 'ملح', 'spaghetti': 'معكرونة', 'dates': 'تمر'
+};
+
+function getArName(name) { return translationMap[name.toLowerCase()] || name; }
+function getEnName(name) { return name.charAt(0).toUpperCase() + name.slice(1); }
+
+// دالة مساعدة للاتصال بالخادم
+async function callServer(action, params = {}) {
+  const response = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...params })
+  });
+  // ملاحظة: قد يحتاج بعض المستخدمين إلى إضافة mode: 'cors' إذا واجهوا مشاكل CORS
+  return await response.json();
+}
+
+// --- وظائف الملاحة ---
+function toggleSidebar() {
+  document.getElementById("mySidebar").classList.toggle("active");
+}
+
+function switchSection(sectionId) {
+  document.querySelectorAll('.section-content').forEach(sec => sec.classList.remove('active'));
+  document.getElementById(sectionId).classList.add('active');
+  toggleSidebar();
+  if (html5QrCode && html5QrCode.getState() === 2) html5QrCode.stop();
+  if (queryQrCode && queryQrCode.getState() === 2) queryQrCode.stop();
+  if (checkoutQrCode && checkoutQrCode.getState() === 2) checkoutQrCode.stop();
+  document.getElementById('reader').style.display = 'none';
+  document.getElementById('query-reader').style.display = 'none';
+  document.getElementById('checkout-reader').style.display = 'none';
+}
+
+// --- وظائف تسجيل الدخول ---
+function login() {
+  if(document.getElementById('passInput').value === SYSTEM_PASS) {
+    showMainApp();
+  } else {
+    document.getElementById('login-err').innerText = "كلمة المرور خاطئة | Incorrect Password";
+  }
+}
+
+function toggleLoginScanner() {
+  const readerDiv = document.getElementById('login-qr-reader');
+  if(readerDiv.style.display === 'block') {
+    if(loginQrCode) loginQrCode.stop();
+    readerDiv.style.display = 'none';
+    return;
+  }
+  readerDiv.style.display = 'block';
+  loginQrCode = new Html5Qrcode("login-qr-reader");
+  loginQrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, (text) => {
+    loginQrCode.stop();
+    readerDiv.style.display = 'none';
+    processVolunteerLogin(text);
+  }).catch(err => {
+      document.getElementById('login-err').innerText = "خطأ في الكاميرا | Camera Error";
+  });
+}
+
+async function processVolunteerLogin(scannedId) {
+  document.getElementById('login-err').innerText = "جاري التحقق... Checking...";
+  try {
+    const res = await callServer('verifyVolunteer', { qrId: scannedId });
+    if(res.status === "success") {
+      showWelcome(res);
+    } else {
+      document.getElementById('login-err').innerText = "غير مصرح لك بالدخول | Access Denied";
+    }
+  } catch (error) {
+    document.getElementById('login-err').innerText = "خطأ في الاتصال بالخادم";
+  }
+}
+
+function showWelcome(data) {
+  document.getElementById('login-screen').style.display = 'none';
+  const overlay = document.getElementById('welcome-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('welcome-msg').innerHTML = `أهلاً بك، <span style="color:var(--iac-dark)">${data.name}</span> ✨`;
+  document.getElementById('quote-ar').innerText = data.quoteAr;
+  document.getElementById('quote-en').innerText = data.quoteEn;
+}
+
+function startApp() {
+  document.getElementById('welcome-overlay').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+}
+
+function showMainApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+}
+
+// --- وظائف التوزيع ---
+async function search() {
+  const id = document.getElementById('idInput').value;
+  const day = document.getElementById('dayInput').value;
+  if(!id || !day) return alert("يرجى إدخال ID واليوم | Enter ID & Day");
+  
+  document.getElementById('beneficiary-result').innerHTML = "جاري التحميل... | Loading...";
+  document.getElementById('items-result').innerHTML = "جاري جلب القائمة... | Fetching list...";
+
+  try {
+    const res = await callServer('getEntitlement', { id, day });
+    renderResult(res);
+  } catch (error) {
+    document.getElementById('beneficiary-result').innerHTML = "<div style='color:red; text-align:center'>❌ خطأ في الاتصال</div>";
+    document.getElementById('items-result').innerHTML = "";
+  }
+}
+
+function renderResult(res) {
+  const bContainer = document.getElementById('beneficiary-result');
+  const iContainer = document.getElementById('items-result');
+  if(!res || res.status === "not_found") {
+    bContainer.innerHTML = "<div style='color:red; text-align:center'>❌ غير موجود | ID Not Found</div>";
+    iContainer.innerHTML = "";
+    return;
+  }
+  const isActive = (res.status === "success");
+  bContainer.innerHTML = `
+    <div class="id-card-modern">
+      <div class="id-card-header">بطاقة تعريف المستفيد | Beneficiary ID</div>
+      <div class="id-card-body">
+        <div class="beneficiary-name">${res.name}</div>
+        <div class="id-details-grid">
+          <div class="detail-item"><span class="detail-label">رقم الهوية | ID</span><span class="detail-value">${document.getElementById('idInput').value}</span></div>
+          <div class="detail-item"><span class="detail-label">رقم الدور | Order</span><span class="detail-value">${res.order ? '#' + res.order : '-'}</span></div>
+          <div class="detail-item"><span class="detail-label">اليوم | Day</span><span class="detail-value">${res.day}</span></div>
+          <div class="detail-item"><span class="detail-label">الحالة | Status</span><span class="detail-value" style="color:${isActive?'green':'red'}">${isActive?'فعال | Active':'معلق | Inactive'}</span></div>
+        </div>
+      </div>
+    </div>`;
+
+  if(!isActive) {
+    iContainer.innerHTML = `<div style="text-align:center; color:#e74c3c; padding:20px">لا يوجد مخصصات اليوم | No items today</div>`;
+    return;
+  }
+
+  let itemsHtml="";
+  for(const [name,info] of Object.entries(res.items)){
+    let action = info.isDelivered ? "<span style='color:green; font-weight:800; font-size:12px'>✔ تم التسليم | Done</span>" : 
+                 (info.qty > 0 ? `<button class='deliver-btn' onclick="deliverItem('${name}',${info.qty},${info.colIndex})">تسليم | Give</button>` : "-");
+    
+    itemsHtml += `
+      <div class="item-row">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="item-qty-box">${info.qty || 0}</div>
+          <div class="item-info-wrapper">
+            <span class="item-name-ar">${getArName(name)}</span>
+            <span class="item-name-en">${getEnName(name)}</span>
+          </div>
+        </div>
+        <div style="min-width:100px; text-align:center">${action}</div>
+      </div>`;
+  }
+  iContainer.innerHTML = itemsHtml;
+}
+
+async function deliverItem(name, qty, colIdx) {
+  if(!confirm(`تأكيد تسليم: ${getArName(name)}؟ \n Confirm delivery of ${name}?`)) return;
+  try {
+    await callServer('saveDelivery', {
+      id: document.getElementById('idInput').value,
+      day: document.getElementById('dayInput').value,
+      colIdx: colIdx,
+      qty: qty
+    });
+    // بعد الحفظ، نقوم بتحديث الشاشة
+    search();
+  } catch (error) {
+    alert("خطأ في حفظ التسليم");
+  }
+}
+
+// --- وظائف القسم الجديد: الإحصاء العام ---
+async function loadGlobalStats() {
+  const mainStatsDiv = document.getElementById('global-main-stats');
+  const daysListDiv = document.getElementById('global-days-list');
+  
+  mainStatsDiv.innerHTML = "<div style='grid-column: span 3; padding:20px; text-align:center;'>⏳ جاري قراءة البيانات من سجلات التسليم...<br>Fetching from Delivered logs...</div>";
+  daysListDiv.innerHTML = "";
+
+  try {
+    const res = await callServer('getGlobalAnalytics');
+    if(res.status === "success") {
+       // الإحصائيات الكلية الشاملة
+       mainStatsDiv.innerHTML = `
+        <div class="stat-card" style="border-bottom: 5px solid var(--iac-primary);">
+          <span class="stat-val" style="color:var(--iac-dark);">${res.totalAll}</span>
+          <span class="stat-lbl">الإجمالي العام<br>Grand Total</span>
+        </div>
+        <div class="stat-card" style="border-bottom: 5px solid #2ecc71;">
+          <span class="stat-val" style="color:#2ecc71;">${res.totalRecAll}</span>
+          <span class="stat-lbl">إجمالي المستلمين<br>Total Received</span>
+        </div>
+        <div class="stat-card" style="border-bottom: 5px solid #e74c3c;">
+          <span class="stat-val" style="color:#e74c3c;">${res.totalNotRecAll}</span>
+          <span class="stat-lbl">إجمالي المتبقي<br>Total Pending</span>
+        </div>
+       `;
+
+       if(res.daysDetails.length === 0) {
+          daysListDiv.innerHTML = "<div style='text-align:center; padding:20px;'>لا توجد بيانات في ورقة Delivered</div>";
+          return;
+       }
+
+       // عرض كروت الأيام التفصيلية
+       let html = "";
+       res.daysDetails.forEach(dayInfo => {
+          html += `
+          <div class="status-card" style="border-right: 8px solid var(--iac-primary); margin-bottom:12px; background:white; border-radius:15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px;">
+                <span style="font-weight:800; font-size:18px; color:var(--iac-dark);">اليوم | Day ${dayInfo.day}</span>
+                <span class="tag" style="background: var(--iac-primary); color: white; border:none; padding:4px 10px;">الإنجاز: ${dayInfo.percent}%</span>
+             </div>
+             <div class="id-details-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div class="detail-item" style="background:#f8f9fa;"><span class="detail-label">الكلي | Total</span><span class="detail-value">${dayInfo.total}</span></div>
+                <div class="detail-item" style="background:#eefaf2;"><span class="detail-label">استلم | Rec.</span><span class="detail-value" style="color:#27ae60;">${dayInfo.received}</span></div>
+                <div class="detail-item" style="background:#fff5f5;"><span class="detail-label">متبقي | Pend.</span><span class="detail-value" style="color:#e74c3c;">${dayInfo.pending}</span></div>
+             </div>
+          </div>`;
+       });
+       daysListDiv.innerHTML = html;
+    } else {
+       mainStatsDiv.innerHTML = "<div style='grid-column: span 3; color:red;'>" + res.message + "</div>";
+    }
+  } catch (error) {
+    mainStatsDiv.innerHTML = "<div style='grid-column: span 3; color:red;'>خطأ في الاتصال</div>";
+  }
+}
+
+// --- وظائف الاستعلام الشامل ---
+async function generalQuery(scannedId) {
+  const id = scannedId || document.getElementById('idQueryInput').value;
+  if(!id) return alert("يرجى إدخال ID / Please enter ID");
+  const container = document.getElementById('query-results-container');
+  container.innerHTML = `<div style='text-align:center; padding:20px; color:var(--iac-dark);'>جاري البحث... | Searching...</div>`;
+
+  try {
+    const res = await callServer('getGeneralStatus', { id });
+    if(res.status === "success") {
+      let html = `
+        <div class="id-card-modern" style="border-right: 8px solid var(--iac-primary); margin-bottom:20px;">
+          <div class="id-card-header">ملف المستفيد | Beneficiary Profile</div>
+          <div class="id-card-body">
+            <div class="beneficiary-name">${res.name}</div>
+            <div style="color: #7f8c8d; font-size: 14px; margin-top: 5px; font-weight:bold;">ID: ${res.id}</div>
+          </div>
+        </div>
+      `;
+      if (res.data.length > 0) {
+        res.data.forEach(record => {
+          const hasItems = record.deliveredItems.length > 0;
+          html += `
+            <div class="status-card ${hasItems ? 'delivered' : 'pending'}">
+              <div style="display:flex; justify-content:space-between; align-items:center">
+                <span style="font-weight:800; font-size:16px; color:var(--iac-dark)">اليوم | Day: ${record.day}</span>
+                <span style="font-size:11px; font-weight:700; color:${hasItems?'#1b8f4c':'#e67e22'}">
+                  ${hasItems ? 'تم الاستلام | Received' : 'لم يتم الاستلام | Not Received'}
+                </span>
+              </div>
+              <div style="margin-top:10px; border-top: 1px dashed #eee; padding-top:10px;">
+                ${hasItems ? record.deliveredItems.map(name => `<span class="tag">${getArName(name)}</span>`).join('') : '<span style="color:#999; font-size:12px;">لا يوجد سجلات | No records</span>'}
+              </div>
+            </div>`;
+        });
+      } else {
+        html += `<div style='text-align:center; background:white; padding:20px; border-radius:15px; color:#e74c3c;'>لا يوجد سجلات سابقة | No records</div>`;
+      }
+      container.innerHTML = html;
+    } else {
+      container.innerHTML = `<div style='text-align:center; background:white; padding:20px; border-radius:15px; color:#e74c3c;'>❌ الرقم غير موجود | Not Found</div>`;
+    }
+  } catch (error) {
+    container.innerHTML = `<div style='text-align:center; color:red;'>خطأ في الاتصال</div>`;
+  }
+}
+
+// --- وظائف التقرير اليومي ---
+async function loadDailyReport() {
+  const day = document.getElementById('reportDayInput').value;
+  if(!day) return alert("يرجى إدخال رقم اليوم | Please enter day");
+  const listContainer = document.getElementById('report-list');
+  const statsDiv = document.getElementById('report-stats');
+  listContainer.innerHTML = "<div style='text-align:center; padding:20px;'>⏳ جاري معالجة البيانات... | Processing...</div>";
+  statsDiv.style.display = 'none';
+
+  try {
+    const res = await callServer('getDailyReport', { day });
+    if(res.status === "success") {
+      document.getElementById('stat-total').innerText = res.total;
+      document.getElementById('stat-rec').innerText = res.received;
+      document.getElementById('stat-not').innerText = res.notReceived;
+      statsDiv.style.display = 'grid';
+      if(res.list.length === 0) {
+        listContainer.innerHTML = "<div class='status-card' style='text-align:center'>لا يوجد مسجلين لهذا اليوم | No data</div>";
+        return;
+      }
+      let html = "";
+      res.list.forEach(item => {
+        const isRec = item.status;
+        html += `
+          <div class="status-card ${isRec ? 'delivered' : 'pending'}" style="padding: 12px; margin-bottom: 8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="text-align:right">
+                <div style="font-weight:800; color:var(--iac-dark); font-size:15px;">${item.name}</div>
+                <div style="font-size:11px; color:#7f8c8d;">ID: ${item.id}</div>
+              </div>
+              <div>
+                <span class="tag" style="background:${isRec?'#eef7f2':'#fff5f5'}; color:${isRec?'#1b8f4c':'#e74c3c'}; border:none; padding:5px 12px;">
+                  ${isRec ? 'استلم | Received' : 'لم يستلم | Pending'}
+                </span>
+              </div>
+            </div>
+          </div>`;
+      });
+      listContainer.innerHTML = html;
+    }
+  } catch (error) {
+    listContainer.innerHTML = "<div style='text-align:center; color:red;'>خطأ في الاتصال</div>";
+  }
+}
+
+// --- وظائف تحقق الخروج ---
+async function runFinalCheckout(scannedId) {
+  const id = scannedId || document.getElementById('checkoutIdInput').value;
+  if(!id) return;
+  
+  const container = document.getElementById('checkout-result-container');
+  container.innerHTML = `
+    <div style="text-align:center; padding:30px; color:#666;">
+      ⏳ جاري التحقق من البيانات...<br>
+      Verifying records...
+    </div>`;
+
+  try {
+    const res = await callServer('finalCheckoutVerify', { id });
+    if(res.status === "success") {
+      let statusColor = res.allGood ? "#1b8f4c" : "#d32f2f";
+      
+      // 1. البطاقة الرئيسية (الاسم والمعرف والحالة)
+      let html = `
+        <div class="id-card-modern checkout-main-card" style="border-top: 8px solid ${statusColor};">
+            <div style="font-size: 40px; margin-bottom:10px;">${res.allGood ? '✅' : '⚠️'}</div>
+            <div class="beneficiary-name" style="font-size:18px;">${res.name}</div>
+            <div style="color: #7f8c8d; font-weight:bold; margin-bottom:15px;">ID: ${res.id}</div>
+            
+            <div style="padding:12px; border-radius:10px; background:${res.allGood ? '#eef7f2' : '#fff5f5'}; color:${statusColor};">
+              <div style="font-weight:800;">
+                ${res.allGood ? 'مكتمل الاستلام - يسمح بالخروج' : 'يوجد مواد لم يتم استلامها'}
+              </div>
+              <div style="font-size:12px; margin-top:4px;">
+                ${res.allGood ? 'Full Delivery - Clear for Exit' : 'Missing Items - Please Check'}
+              </div>
+            </div>
+        </div>
+      `;
+
+      // 2. عرض المواد المفقودة (بنفس عرض البطاقة السابقة)
+      if (!res.allGood) {
+        html += `
+          <div style="width:90%; max-width:500px; font-weight:800; color:#444; margin-top:10px; text-align:right;">
+             المواد المتبقية | Remaining Items:
+          </div>`;
+
+        res.missingItems.forEach(item => {
+          html += `
+            <div class="checkout-item-card">
+               <div class="item-info-wrapper">
+                  <span class="item-name-ar" style="color:#d32f2f; font-size:15px;">${getArName(item.name)}</span>
+                  <span class="item-name-en" style="font-size:11px; color:#999;">${getEnName(item.name)}</span>
+               </div>
+               <div style="text-align:left;">
+                  <div style="font-size:10px; color:#7f8c8d;">النقص | Short:</div>
+                  <div style="font-weight:800; color:#d32f2f; font-size:18px;">${item.required - item.received}</div>
+               </div>
+            </div>`;
+        });
+      }
+      container.innerHTML = html;
+    } else {
+      // رسالة الخطأ باللغتين
+      container.innerHTML = `
+        <div class="id-card-modern checkout-main-card" style="border-right: 6px solid #e74c3c;">
+          <div style="color:#e74c3c; font-weight:800;">❌ المعرف غير موجود في سجلات التسليم</div>
+          <div style="font-size:12px; color:#666; margin-top:5px;">Beneficiary ID not found in Delivered logs</div>
+        </div>`;
+    }
+  } catch (error) {
+    container.innerHTML = `<div style="text-align:center; color:red;">خطأ في الاتصال</div>`;
+  }
+}
+
+// دالة الكاميرا لقسم الخروج
+function toggleCheckoutScanner() {
+  const readerDiv = document.getElementById('checkout-reader');
+  if(readerDiv.style.display === 'block') {
+    if(checkoutQrCode) checkoutQrCode.stop();
+    readerDiv.style.display = 'none';
+    return;
+  }
+  readerDiv.style.display = 'block';
+  checkoutQrCode = new Html5Qrcode("checkout-reader");
+  checkoutQrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+    checkoutQrCode.stop();
+    readerDiv.style.display = 'none';
+    document.getElementById('checkoutIdInput').value = text;
+    runFinalCheckout(text);
+  }).catch(err => alert("تأكد من إعطاء صلاحية الكاميرا للمتصفح"));
+}
+
+// دوال الكاميرا للأقسام الأخرى
+async function toggleScanner() {
+  const readerDiv = document.getElementById('reader');
+  if (readerDiv.style.display === 'block') {
+    if(html5QrCode) await html5QrCode.stop();
+    readerDiv.style.display = 'none';
+    return;
+  }
+  readerDiv.style.display = 'block';
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" }, 
+    { fps: 10, qrbox: 250 },
+    (text) => {
+      document.getElementById('idInput').value = text;
+      html5QrCode.stop();
+      readerDiv.style.display = 'none';
+      search(); // استدعاء البحث مباشرة بعد المسح
+    }
+  ).catch(err => alert("تأكد من إعطاء صلاحية الكاميرا للمتصفح"));
+}
+
+function toggleQueryScanner() {
+  const readerDiv = document.getElementById('query-reader');
+  if(readerDiv.style.display === 'block') {
+    if(queryQrCode) queryQrCode.stop();
+    readerDiv.style.display = 'none';
+    return;
+  }
+  readerDiv.style.display = 'block';
+  queryQrCode = new Html5Qrcode("query-reader");
+  queryQrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+    queryQrCode.stop();
+    readerDiv.style.display = 'none';
+    document.getElementById('idQueryInput').value = text;
+    generalQuery(text);
+  }).catch(err => alert("تأكد من إعطاء صلاحية الكاميرا للمتصفح"));
+}
+
+// دالة runSearch (إذا كانت مستخدمة في مكان آخر) يمكن إزالتها أو تعديلها
+function runSearch() {
+  search();
+}
+</script>
+</body>
+</html>
